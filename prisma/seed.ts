@@ -77,7 +77,28 @@ async function main() {
       isActive: true,
     },
   });
-  console.log('Created default manager user (PIN: 1234)');
+
+  // Create system user for automated/default order attribution
+  // Default manager PIN: 1234
+  const systemPassword = await bcrypt.hash('system', SALT_ROUNDS);
+  await prisma.user.upsert({
+    where: { username: 'system' },
+    update: {
+      name: 'System',
+      role: 'system',
+      password: systemPassword,
+    },
+    create: {
+      id: 'system',
+      username: 'system',
+      password: systemPassword,
+      name: 'System',
+      role: 'system',
+      isActive: true,
+    },
+  });
+
+  console.log('Created default manager user and system user');
 
   // Create default settings
   const defaultSettings = [

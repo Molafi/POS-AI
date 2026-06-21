@@ -115,8 +115,6 @@ const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
             Verifying...
           </div>
         )}
-
-        <p className="text-xs text-apex-text-muted">Default PIN: 1234</p>
       </motion.div>
     </div>
   );

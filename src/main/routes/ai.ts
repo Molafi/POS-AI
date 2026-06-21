@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
-import { getPrisma } from '../database';
+import { getApiKey } from '../services/security';
 
 const router = Router();
 
@@ -14,9 +14,8 @@ router.post('/analyze-image', async (req: Request, res: Response) => {
       return;
     }
 
-    const prisma = getPrisma();
-    const apiKeySetting = await prisma.setting.findUnique({ where: { key: 'claude_api_key' } });
-    const apiKey = apiKeySetting?.value || process.env.ANTHROPIC_API_KEY || '';
+    // Try secure store first, then fall back to environment variable
+    const apiKey = getApiKey('claude_api_key') || process.env.ANTHROPIC_API_KEY || '';
 
     if (!apiKey) {
       res.status(400).json({ success: false, error: 'Claude API key not configured' });
@@ -87,9 +86,8 @@ router.post('/summary', async (req: Request, res: Response) => {
   try {
     const { salesData, period } = req.body;
 
-    const prisma = getPrisma();
-    const apiKeySetting = await prisma.setting.findUnique({ where: { key: 'claude_api_key' } });
-    const apiKey = apiKeySetting?.value || process.env.ANTHROPIC_API_KEY || '';
+    // Try secure store first, then fall back to environment variable
+    const apiKey = getApiKey('claude_api_key') || process.env.ANTHROPIC_API_KEY || '';
 
     if (!apiKey) {
       res.status(400).json({ success: false, error: 'Claude API key not configured' });

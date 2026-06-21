@@ -30,7 +30,7 @@ export async function startServer(port: number): Promise<void> {
     },
   });
 
-  app.use(express.json({ limit: '50mb' }));
+  app.use(express.json({ limit: '1mb' }));
 
   // Health check
   app.get('/api/health', (_req, res) => {
@@ -41,7 +41,7 @@ export async function startServer(port: number): Promise<void> {
   app.use('/api/products', productsRouter);
   app.use('/api/orders', ordersRouter);
   app.use('/api/cart', cartRouter);
-  app.use('/api/ai', aiRouter);
+  app.use('/api/ai', express.json({ limit: '50mb' }), aiRouter);
   app.use('/api/unsplash', unsplashRouter);
   app.use('/api/refunds', refundsRouter);
   app.use('/api/reports', reportsRouter);

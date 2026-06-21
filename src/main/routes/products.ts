@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getPrisma } from '../database';
+import { validateBody } from '../middleware/validation';
+import { productUpdateSchema } from '../middleware/validation';
 
 const router = Router();
 
@@ -93,7 +95,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PUT /api/products/:id - Update a product
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', validateBody(productUpdateSchema), async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma();
     const { id } = req.params;

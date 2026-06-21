@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { createPaymentIntent, confirmPayment, isStripeConfigured } from '../services/stripe';
+import { createPaymentIntent, confirmPayment, cancelPayment, isStripeConfigured } from '../services/stripe';
 import { validateBody } from '../middleware/validation';
 import { paymentProcessSchema, cashPaymentSchema, splitPaymentSchema } from '../middleware/validation';
 import { getPrisma } from '../database';
@@ -119,31 +119,56 @@ router.post('/split', validateBody(splitPaymentSchema), async (req: Request, res
     }
 
     // Process card payments if any
-    const results = [];
-    for (const payment of payments) {
-      if (payment.method === 'card') {
-        if (!isStripeConfigured()) {
-          res.status(503).json({
-            success: false,
-            error: 'Card payments are not configured.',
-          });
-          return;
-        }
+    const results: Array<{ method: string; amount: number; paymentIntentId?: string; status: string }> = [];
+    const completedIntents: string[] = [];
 
-        const intent = await createPaymentIntent(payment.amount, 'usd', { orderId });
-        results.push({
-          method: 'card',
-          amount: payment.amount,
-          paymentIntentId: intent.id,
-          status: intent.status,
-        });
-      } else {
-        results.push({
-          method: payment.method,
-          amount: payment.amount,
-          status: 'completed',
-        });
+    try {
+      for (const payment of payments) {
+        if (payment.method === 'card') {
+          if (!isStripeConfigured()) {
+            // Cancel any previously created intents before returning error
+            for (const intentId of completedIntents) {
+              try {
+                await cancelPayment(intentId);
+              } catch {
+                // Best effort cancellation
+              }
+            }
+            res.status(503).json({
+              success: false,
+              error: 'Card payments are not configured.',
+            });
+            return;
+          }
+
+          const intent = await createPaymentIntent(payment.amount, 'usd', { orderId });
+          completedIntents.push(intent.id);
+          results.push({
+            method: 'card',
+            amount: payment.amount,
+            paymentIntentId: intent.id,
+            status: intent.status,
+          });
+        } else {
+          results.push({
+            method: payment.method,
+            amount: payment.amount,
+            status: 'completed',
+          });
+        }
       }
+    } catch (error) {
+      // If any payment fails, cancel all previously created payment intents
+      for (const intentId of completedIntents) {
+        try {
+          await cancelPayment(intentId);
+        } catch {
+          // Best effort cancellation
+        }
+      }
+      const message = error instanceof Error ? error.message : 'Split payment failed';
+      res.status(500).json({ success: false, error: message });
+      return;
     }
 
     // Update order payment method

@@ -30,7 +30,7 @@ interface UseCartReturn {
   itemCount: number;
 }
 
-const TAX_RATE = 0.16;
+const DEFAULT_TAX_RATE = 0.16;
 
 function calculateLineTotal(item: CartItem): number {
   const discountMultiplier = 1 - item.discount / 100;
@@ -54,7 +54,24 @@ export function useCart(): UseCartReturn {
     customerTier: 'new',
     customerName: '',
   });
+  const [taxRate, setTaxRate] = useState<number>(DEFAULT_TAX_RATE);
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch tax rate from settings
+  useEffect(() => {
+    api.get<Record<string, string>>('/settings?category=general')
+      .then((response) => {
+        if (response.success && response.data) {
+          const rate = parseFloat(response.data.tax_rate);
+          if (!isNaN(rate)) {
+            setTaxRate(rate / 100); // Convert percentage to decimal (e.g., 16 -> 0.16)
+          }
+        }
+      })
+      .catch(() => {
+        // Use default tax rate if fetch fails
+      });
+  }, []);
 
   // Auto-save every 30s
   useEffect(() => {
@@ -170,7 +187,7 @@ export function useCart(): UseCartReturn {
   const tierDiscountPercent = getTierDiscount(state.customerTier);
   const discountAmount = subtotal * (tierDiscountPercent / 100);
   const taxableAmount = subtotal - discountAmount;
-  const taxAmount = taxableAmount * TAX_RATE;
+  const taxAmount = taxableAmount * taxRate;
   const total = taxableAmount + taxAmount;
 
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);

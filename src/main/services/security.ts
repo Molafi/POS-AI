@@ -1,5 +1,7 @@
 import ElectronStore from 'electron-store';
 import bcrypt from 'bcryptjs';
+import { createHash } from 'crypto';
+import { hostname, userInfo } from 'os';
 
 const SALT_ROUNDS = 10;
 
@@ -9,11 +11,20 @@ interface SecureStoreSchema {
 
 let store: ElectronStore<SecureStoreSchema> | null = null;
 
+/**
+ * Generate a machine-specific encryption key derived from system identifiers.
+ * This provides better protection than a hardcoded key since it is unique per machine.
+ */
+function getMachineEncryptionKey(): string {
+  const machineId = `${hostname()}-${userInfo().username}-apex-pos`;
+  return createHash('sha256').update(machineId).digest('hex');
+}
+
 function getStore(): ElectronStore<SecureStoreSchema> {
   if (!store) {
     store = new ElectronStore<SecureStoreSchema>({
       name: 'apex-secure-store',
-      encryptionKey: 'apex-pos-encryption-key-v1',
+      encryptionKey: getMachineEncryptionKey(),
       defaults: {
         encryptedKeys: {},
       },

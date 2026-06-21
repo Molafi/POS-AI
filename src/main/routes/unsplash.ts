@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getPrisma } from '../database';
+import { getApiKey } from '../services/security';
 
 const router = Router();
 
@@ -13,9 +13,8 @@ router.get('/search', async (req: Request, res: Response) => {
       return;
     }
 
-    const prisma = getPrisma();
-    const apiKeySetting = await prisma.setting.findUnique({ where: { key: 'unsplash_api_key' } });
-    const accessKey = apiKeySetting?.value || process.env.UNSPLASH_ACCESS_KEY || '';
+    // Try secure store first, then fall back to environment variable
+    const accessKey = getApiKey('unsplash_api_key') || process.env.UNSPLASH_ACCESS_KEY || '';
 
     if (!accessKey) {
       res.status(400).json({ success: false, error: 'Unsplash API key not configured' });

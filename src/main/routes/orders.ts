@@ -1,8 +1,15 @@
 import { Router, Request, Response } from 'express';
+import { randomBytes } from 'crypto';
 import { getPrisma } from '../database';
 import { getIO } from '../server';
 
 const router = Router();
+
+function generateOrderNumber(): string {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = randomBytes(3).toString('hex').toUpperCase();
+  return `ORD-${timestamp}-${random}`;
+}
 
 // POST /api/orders - Create a new order
 router.post('/', async (req: Request, res: Response) => {
@@ -15,9 +22,8 @@ router.post('/', async (req: Request, res: Response) => {
       return;
     }
 
-    // Generate order number
-    const orderCount = await prisma.order.count();
-    const orderNumber = `ORD-${String(orderCount + 1).padStart(6, '0')}`;
+    // Generate order number using timestamp + random to avoid race conditions
+    const orderNumber = generateOrderNumber();
 
     // Create order with items in a transaction
     const order = await prisma.$transaction(async (tx) => {

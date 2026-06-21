@@ -81,7 +81,7 @@ export const splitPaymentSchema = z.object({
   totalAmount: z.number().positive('Total amount must be positive'),
   payments: z.array(
     z.object({
-      method: z.enum(['cash', 'card', 'mobile']),
+      method: z.enum(['cash', 'card', 'wallet']),
       amount: z.number().positive('Payment amount must be positive'),
     })
   ).min(2, 'Split payment requires at least 2 payment methods'),
@@ -105,6 +105,19 @@ export const productCreateSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+export const productUpdateSchema = z.object({
+  name: z.string().min(1, 'Product name is required').optional(),
+  sku: z.string().min(1, 'SKU is required').optional(),
+  barcode: z.string().nullable().optional(),
+  category: z.string().min(1, 'Category is required').optional(),
+  price: z.number().positive('Price must be positive').optional(),
+  cost: z.number().min(0).optional(),
+  stock: z.number().int().min(0).optional(),
+  minStock: z.number().int().min(0).optional(),
+  imageUrl: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+}).strict();
+
 export const orderCreateSchema = z.object({
   items: z.array(
     z.object({
@@ -119,7 +132,7 @@ export const orderCreateSchema = z.object({
   tax: z.number().min(0),
   discount: z.number().min(0).default(0),
   total: z.number().positive(),
-  paymentMethod: z.enum(['cash', 'card', 'mobile', 'split']),
+  paymentMethod: z.enum(['cash', 'card', 'wallet', 'split']),
   customerId: z.string().nullable().optional(),
   cashierId: z.string().min(1),
 });

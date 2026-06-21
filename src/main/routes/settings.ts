@@ -1,8 +1,17 @@
 import { Router, Request, Response } from 'express';
 import { getPrisma } from '../database';
+import { storeApiKey, getApiKey, deleteApiKey } from '../services/security';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
+
+/**
+ * Determine whether a settings key should be stored in the secure store
+ * rather than the plaintext Settings table.
+ */
+function isSecureKey(key: string): boolean {
+  return key.endsWith('_api_key') || key.endsWith('_secret_key');
+}
 
 // GET /api/settings - Get all settings or by category
 router.get('/', async (req: Request, res: Response) => {
@@ -18,7 +27,13 @@ router.get('/', async (req: Request, res: Response) => {
     const settings = await prisma.setting.findMany({ where });
     const settingsMap: Record<string, string> = {};
     for (const s of settings) {
-      settingsMap[s.key] = s.value;
+      if (isSecureKey(s.key)) {
+        // Retrieve from secure store; return masked value to indicate it is set
+        const secureValue = getApiKey(s.key);
+        settingsMap[s.key] = secureValue ? '••••••••' : '';
+      } else {
+        settingsMap[s.key] = s.value;
+      }
     }
 
     res.json({ success: true, data: settingsMap });
@@ -42,11 +57,27 @@ router.put('/', async (req: Request, res: Response) => {
     const entries = Object.entries(settings) as [string, string][];
     for (const [key, value] of entries) {
       const category = key.split('_')[0] || 'general';
-      await prisma.setting.upsert({
-        where: { key },
-        create: { key, value: String(value), category },
-        update: { value: String(value) },
-      });
+
+      if (isSecureKey(key)) {
+        // Store the actual value in the secure store
+        if (value) {
+          storeApiKey(key, String(value));
+        } else {
+          deleteApiKey(key);
+        }
+        // Store a placeholder in the database to track that this key exists
+        await prisma.setting.upsert({
+          where: { key },
+          create: { key, value: '[secure]', category },
+          update: { value: '[secure]' },
+        });
+      } else {
+        await prisma.setting.upsert({
+          where: { key },
+          create: { key, value: String(value), category },
+          update: { value: String(value) },
+        });
+      }
     }
 
     res.json({ success: true, data: { message: 'Settings updated' } });
