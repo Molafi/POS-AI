@@ -1,6 +1,9 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import productsRouter from './routes/products';
+import ordersRouter from './routes/orders';
+import cartRouter from './routes/cart';
 
 let io: SocketIOServer | null = null;
 
@@ -25,6 +28,11 @@ export async function startServer(port: number): Promise<void> {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  // API routes
+  app.use('/api/products', productsRouter);
+  app.use('/api/orders', ordersRouter);
+  app.use('/api/cart', cartRouter);
 
   // Socket.io connection handling
   io.on('connection', (socket) => {

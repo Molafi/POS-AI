@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Build the complete Cashier View - the main selling interface with three-panel layout: product grid with fuzzy search, live cart with AI recommendations, and payment processing panel.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Create src/renderer/pages/CashierView.tsx - three-panel layout (35% product grid | 35% live cart | 30% payment) using Tailwind flex/grid",
     "Create src/renderer/components/cashier/ProductGrid.tsx - virtualized grid using react-window with product cards showing image/emoji, name, price, stock badge (LOW amber <5, OUT red =0), scan-line hover animation, disabled state for out-of-stock",
