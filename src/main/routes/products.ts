@@ -59,4 +59,74 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/products - Create a product
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const { name, sku, barcode, category, price, cost, stock, minStock, imageUrl, isActive } = req.body;
+
+    if (!name || !category) {
+      res.status(400).json({ success: false, error: 'Name and category are required' });
+      return;
+    }
+
+    const product = await prisma.product.create({
+      data: {
+        name,
+        sku: sku || `SKU-${Date.now().toString(36).toUpperCase()}`,
+        barcode: barcode || null,
+        category,
+        price: price || 0,
+        cost: cost || 0,
+        stock: stock || 0,
+        minStock: minStock || 5,
+        imageUrl: imageUrl || null,
+        isActive: isActive !== undefined ? isActive : true,
+      },
+    });
+
+    res.status(201).json({ success: true, data: product });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create product';
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+// PUT /api/products/:id - Update a product
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const { id } = req.params;
+    const data = req.body;
+
+    const product = await prisma.product.update({
+      where: { id },
+      data,
+    });
+
+    res.json({ success: true, data: product });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update product';
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+// DELETE /api/products/:id - Delete a product
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const { id } = req.params;
+
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    res.json({ success: true, data: { message: 'Product deactivated' } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete product';
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
 export default router;

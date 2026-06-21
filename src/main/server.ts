@@ -4,6 +4,11 @@ import { Server as SocketIOServer } from 'socket.io';
 import productsRouter from './routes/products';
 import ordersRouter from './routes/orders';
 import cartRouter from './routes/cart';
+import aiRouter from './routes/ai';
+import unsplashRouter from './routes/unsplash';
+import refundsRouter from './routes/refunds';
+import reportsRouter from './routes/reports';
+import settingsRouter from './routes/settings';
 
 let io: SocketIOServer | null = null;
 
@@ -22,7 +27,7 @@ export async function startServer(port: number): Promise<void> {
     },
   });
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
 
   // Health check
   app.get('/api/health', (_req, res) => {
@@ -33,6 +38,11 @@ export async function startServer(port: number): Promise<void> {
   app.use('/api/products', productsRouter);
   app.use('/api/orders', ordersRouter);
   app.use('/api/cart', cartRouter);
+  app.use('/api/ai', aiRouter);
+  app.use('/api/unsplash', unsplashRouter);
+  app.use('/api/refunds', refundsRouter);
+  app.use('/api/reports', reportsRouter);
+  app.use('/api/settings', settingsRouter);
 
   // Socket.io connection handling
   io.on('connection', (socket) => {
