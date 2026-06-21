@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "feat",
   "description": "Implement receipt PDF generation, Stripe payment integration, Socket.io real-time sync, auto-updater config, offline resilience, error handling, and seed data. Complete all remaining backend services and integration points.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Create src/main/services/receipt.ts - PDF generation with pdfkit: business logo, name, address, order number, date/time, itemized list, discounts, tax breakdown, total, payment method, change due, cashier name, thank-you message. Support 80mm thermal receipt format",
     "Create src/main/services/stripe.ts - Stripe payment processing: create payment intent, confirm payment, handle errors with retry (3x with exponential backoff), timeout (10s)",

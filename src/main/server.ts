@@ -9,6 +9,9 @@ import unsplashRouter from './routes/unsplash';
 import refundsRouter from './routes/refunds';
 import reportsRouter from './routes/reports';
 import settingsRouter from './routes/settings';
+import paymentsRouter from './routes/payments';
+import receiptsRouter from './routes/receipts';
+import { errorHandler } from './middleware/errorHandler';
 
 let io: SocketIOServer | null = null;
 
@@ -43,6 +46,11 @@ export async function startServer(port: number): Promise<void> {
   app.use('/api/refunds', refundsRouter);
   app.use('/api/reports', reportsRouter);
   app.use('/api/settings', settingsRouter);
+  app.use('/api/payments', paymentsRouter);
+  app.use('/api/receipts', receiptsRouter);
+
+  // Error handling middleware (must be last)
+  app.use(errorHandler);
 
   // Socket.io connection handling
   io.on('connection', (socket) => {

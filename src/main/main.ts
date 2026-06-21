@@ -2,10 +2,14 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { startServer } from './server';
 import { initDatabase } from './database';
+import { startScheduler, stopScheduler } from './services/scheduler';
+import { initAutoUpdater, checkForUpdates } from './services/updater';
 
 let mainWindow: BrowserWindow | null = null;
+let autoSaveTimer: NodeJS.Timeout | null = null;
 
 const SERVER_PORT = 3847;
+const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
@@ -34,10 +38,35 @@ async function createWindow(): Promise<void> {
   });
 }
 
+function startAutoSaveTimer(): void {
+  autoSaveTimer = setInterval(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('cart:auto-save');
+    }
+  }, AUTO_SAVE_INTERVAL);
+}
+
+function stopAutoSaveTimer(): void {
+  if (autoSaveTimer) {
+    clearInterval(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+}
+
 async function bootstrap(): Promise<void> {
   await initDatabase();
   await startServer(SERVER_PORT);
   await createWindow();
+
+  // Initialize services
+  startScheduler();
+  startAutoSaveTimer();
+
+  // Initialize auto-updater (only in production)
+  if (mainWindow && app.isPackaged) {
+    initAutoUpdater(mainWindow);
+    checkForUpdates();
+  }
 }
 
 // Window control IPC handlers
@@ -61,9 +90,15 @@ ipcMain.handle('app:getVersion', () => {
   return app.getVersion();
 });
 
+ipcMain.handle('updater:check', () => {
+  checkForUpdates();
+});
+
 app.whenReady().then(bootstrap);
 
 app.on('window-all-closed', () => {
+  stopAutoSaveTimer();
+  stopScheduler();
   if (process.platform !== 'darwin') {
     app.quit();
   }
