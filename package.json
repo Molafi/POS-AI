@@ -12,6 +12,7 @@
     "start": "electron .",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "seed": "npx ts-node prisma/seed.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
