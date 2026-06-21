@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>POS-AI - Intelligent Point of Sale</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root {
+  --bg: #0B0F1A;
+  --surface: #141824;
+  --card: #1C2235;
+  --accent: #6C63FF;
+  --success: #00D68F;
+  --warning: #FFB347;
+  --danger: #FF4D6D;
+  --text-primary: #F0F2FF;
+  --text-muted: #8892B0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root { min-height: 100vh; }
+
+@keyframes pulseRing {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+@keyframes checkmark {
+  0% { stroke-dashoffset: 50; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(108, 99, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(108, 99, 255, 0.6); }
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover { transform: scale(1.03); }
+button:active { transform: scale(0.97); }
+button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+input {
+  outline: none;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+input:focus { border-color: var(--accent); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--card) 25%, #2a3050 50%, var(--card) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .main-layout {
+    flex-direction: column !important;
+  }
+  .main-layout > div {
+    width: 100% !important;
+    max-height: none !important;
+  }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+// ============ SAMPLE DATA ============
+const INITIAL_PRODUCTS = [
+  { id: 1, name: "Burger Classic", price: 5.99, emoji: "\u{1F354}", category: "Food", stock: 20 },
+  { id: 2, name: "Pepperoni Pizza", price: 8.49, emoji: "\u{1F355}", category: "Food", stock: 15 },
+  { id: 3, name: "Cola Large", price: 1.99, emoji: "\u{1F964}", category: "Drinks", stock: 50 },
+  { id: 4, name: "Espresso", price: 2.49, emoji: "\u2615", category: "Drinks", stock: 30 },
+  { id: 5, name: "Vanilla Sundae", price: 3.29, emoji: "\u{1F366}", category: "Desserts", stock: 12 },
+  { id: 6, name: "Meal Deal Combo", price: 10.99, emoji: "\u{1F381}", category: "Combos", stock: 8 },
+  { id: 7, name: "Hand Sanitizer", price: 4.99, emoji: "\u{1F9F4}", category: "Retail", stock: 3 },
+  { id: 8, name: "Fries Large", price: 2.79, emoji: "\u{1F35F}", category: "Food", stock: 25 },
+  { id: 9, name: "Orange Juice", price: 2.19, emoji: "\u{1F9C3}", category: "Drinks", stock: 18 },
+  { id: 10, name: "Cheesecake Slice", price: 4.49, emoji: "\u{1F370}", category: "Desserts", stock: 7 },
+  { id: 11, name: "Chicken Wings", price: 6.99, emoji: "\u{1F357}", category: "Food", stock: 14 },
+  { id: 12, name: "Iced Latte", price: 3.79, emoji: "\u{1F9CB}", category: "Drinks", stock: 22 },
+  { id: 13, name: "Chocolate Cake", price: 4.99, emoji: "\u{1F382}", category: "Desserts", stock: 9 },
+  { id: 14, name: "Family Bundle", price: 19.99, emoji: "\u{1F4E6}", category: "Combos", stock: 5 },
+  { id: 15, name: "Water Bottle", price: 0.99, emoji: "\u{1F4A7}", category: "Drinks", stock: 60 },
+  { id: 16, name: "Hot Dog", price: 3.49, emoji: "\u{1F32D}", category: "Food", stock: 18 },
+  { id: 17, name: "Smoothie Berry", price: 4.29, emoji: "\u{1F353}", category: "Drinks", stock: 10 },
+  { id: 18, name: "Donut Glazed", price: 1.89, emoji: "\u{1F369}", category: "Desserts", stock: 20 },
+  { id: 19, name: "Snack Pack Combo", price: 7.49, emoji: "\u{1F37F}", category: "Combos", stock: 12 },
+  { id: 20, name: "Phone Charger", price: 9.99, emoji: "\u{1F50C}", category: "Retail", stock: 4 }
+];
+
+const CATEGORIES = ["All", "Food", "Drinks", "Desserts", "Combos", "Retail"];
+const TAX_RATE = 0.14;
+const CUSTOMER_TIERS = { New: 0, Regular: 0.05, VIP: 0.10 };
+
+// ============ ALGORITHMS ============
+
+function levenshteinDistance(a, b) {
+  const matrix = [];
+  const aLen = a.length;
+  const bLen = b.length;
+  if (aLen === 0) return bLen;
+  if (bLen === 0) return aLen;
+  for (let i = 0; i <= bLen; i++) matrix[i] = [i];
+  for (let j = 0; j <= aLen; j++) matrix[0][j] = j;
+  for (let i = 1; i <= bLen; i++) {
+    for (let j = 1; j <= aLen; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[bLen][aLen];
+}
+
+function fuzzySearch(query, products) {
+  if (!query.trim()) return products;
+  const q = query.toLowerCase();
+  return products
+    .map(p => {
+      const name = p.name.toLowerCase();
+      if (name.includes(q)) return { ...p, score: 0 };
+      const dist = levenshteinDistance(q, name.substring(0, q.length));
+      return { ...p, score: dist };
+    })
+    .filter(p => p.score <= 3)
+    .sort((a, b) => a.score - b.score);
+}
+
+function getCoOccurrenceRecommendations(cartItems, coMatrix, products, maxRecs = 3) {
+  const cartIds = cartItems.map(i => i.id);
+  if (cartIds.length === 0) return [];
+  const scores = {};
+  cartIds.forEach(id => {
+    if (coMatrix[id]) {
+      Object.entries(coMatrix[id]).forEach(([otherId, count]) => {
+        const oid = parseInt(otherId);
+        if (!cartIds.includes(oid)) {
+          scores[oid] = (scores[oid] || 0) + count;
+        }
+      });
+    }
+  });
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]).slice(0, maxRecs);
+  if (sorted.length < maxRecs) {
+    const freq = JSON.parse(localStorage.getItem('pos_frequency') || '{}');
+    const freqSorted = Object.entries(freq)
+      .filter(([id]) => !cartIds.includes(parseInt(id)) && !sorted.find(s => s[0] === id))
+      .sort((a, b) => b[1] - a[1]);
+    while (sorted.length < maxRecs && freqSorted.length > 0) {
+      sorted.push(freqSorted.shift());
+    }
+  }
+  return sorted.map(([id]) => products.find(p => p.id === parseInt(id))).filter(Boolean);
+}
+
+// ============ MAIN APP ============
+function App() {
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem('pos_products');
+    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+  });
+  const [cart, setCart] = useState(() => {
+    const saved = localStorage.getItem('pos_cart');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [category, setCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [customerTier, setCustomerTier] = useState(() => {
+    return localStorage.getItem('pos_tier') || "New";
+  });
+  const [rightTab, setRightTab] = useState("payment");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [splitPayment, setSplitPayment] = useState(false);
+  const [splitAmounts, setSplitAmounts] = useState({ method1: "Cash", method2: "Card", amount1: "", amount2: "" });
+  const [cashTendered, setCashTendered] = useState("");
+  const [orders, setOrders] = useState(() => {
+    const saved = localStorage.getItem('pos_orders');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [coMatrix, setCoMatrix] = useState(() => {
+    const saved = localStorage.getItem('pos_coMatrix');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [frequency, setFrequency] = useState(() => {
+    const saved = localStorage.getItem('pos_frequency');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [lastReceipt, setLastReceipt] = useState(null);
+  const [selectedCartItem, setSelectedCartItem] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const searchRef = useRef(null);
+
+  // Loading skeleton
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Persist cart
+  useEffect(() => {
+    localStorage.setItem('pos_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Persist products
+  useEffect(() => {
+    localStorage.setItem('pos_products', JSON.stringify(products));
+  }, [products]);
+
+  // Persist orders
+  useEffect(() => {
+    localStorage.setItem('pos_orders', JSON.stringify(orders));
+  }, [orders]);
+
+  // Persist tier
+  useEffect(() => {
+    localStorage.setItem('pos_tier', customerTier);
+  }, [customerTier]);
+
+  // Persist co-occurrence matrix
+  useEffect(() => {
+    localStorage.setItem('pos_coMatrix', JSON.stringify(coMatrix));
+  }, [coMatrix]);
+
+  // Persist frequency
+  useEffect(() => {
+    localStorage.setItem('pos_frequency', JSON.stringify(frequency));
+  }, [frequency]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === '/') { e.preventDefault(); searchRef.current?.focus(); }
+      if (e.key === 'Escape') { setSearchQuery(""); setShowClearConfirm(false); searchRef.current?.blur(); }
+      if (e.key === 'Enter' && rightTab === 'payment' && cart.length > 0) { processPayment(); }
+      if (e.key === 'c' || e.key === 'C') { if (cart.length > 0) setShowClearConfirm(true); }
+      if (e.key >= '1' && e.key <= '9' && selectedCartItem !== null) {
+        setCart(prev => prev.map(item =>
+          item.id === selectedCartItem ? { ...item, quantity: parseInt(e.key) } : item
+        ));
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [rightTab, cart, selectedCartItem]);
+
+  // Filtered products
+  const filteredProducts = useMemo(() => {
+    let result = products;
+    if (category !== "All") result = result.filter(p => p.category === category);
+    if (searchQuery) result = fuzzySearch(searchQuery, result);
+    return result;
+  }, [products, category, searchQuery]);
+
+  // Cart calculations
+  const cartCalcs = useMemo(() => {
+    const subtotal = cart.reduce((sum, item) => {
+      const itemTotal = item.price * item.quantity;
+      const discount = item.discount ? itemTotal * (item.discount / 100) : 0;
+      return sum + (itemTotal - discount);
+    }, 0);
+    const tierDiscount = subtotal * CUSTOMER_TIERS[customerTier];
+    const afterTierDiscount = subtotal - tierDiscount;
+    const tax = afterTierDiscount * TAX_RATE;
+    const total = afterTierDiscount + tax;
+    return { subtotal, tierDiscount, afterTierDiscount, tax, total };
+  }, [cart, customerTier]);
+
+  // AI Recommendations
+  const recommendations = useMemo(() => {
+    return getCoOccurrenceRecommendations(cart, coMatrix, products);
+  }, [cart, coMatrix, products]);
+
+  const addToCart = useCallback((product) => {
+    if (product.stock <= 0) return;
+    setCart(prev => {
+      const existing = prev.find(i => i.id === product.id);
+      if (existing) {
+        return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, { id: product.id, name: product.name, price: product.price, emoji: product.emoji, quantity: 1, discount: 0 }];
+    });
+    setSelectedCartItem(product.id);
+    // Update frequency
+    setFrequency(prev => ({ ...prev, [product.id]: (prev[product.id] || 0) + 1 }));
+  }, []);
+
+  const removeFromCart = useCallback((id) => {
+    setCart(prev => prev.filter(i => i.id !== id));
+    if (selectedCartItem === id) setSelectedCartItem(null);
+  }, [selectedCartItem]);
+
+  const updateQuantity = useCallback((id, delta) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = item.quantity + delta;
+        if (newQty <= 0) return null;
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }).filter(Boolean));
+  }, []);
+
+  const updateDiscount = useCallback((id, discount) => {
+    const val = Math.min(100, Math.max(0, parseFloat(discount) || 0));
+    setCart(prev => prev.map(item => item.id === id ? { ...item, discount: val } : item));
+  }, []);
+
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setSelectedCartItem(null);
+    setShowClearConfirm(false);
+  }, []);
+
+  const processPayment = useCallback(() => {
+    if (cart.length === 0) return;
+    // Update co-occurrence matrix
+    const cartIds = cart.map(i => i.id);
+    const newMatrix = { ...coMatrix };
+    for (let i = 0; i < cartIds.length; i++) {
+      for (let j = i + 1; j < cartIds.length; j++) {
+        const a = cartIds[i], b = cartIds[j];
+        if (!newMatrix[a]) newMatrix[a] = {};
+        if (!newMatrix[b]) newMatrix[b] = {};
+        newMatrix[a][b] = (newMatrix[a][b] || 0) + 1;
+        newMatrix[b][a] = (newMatrix[b][a] || 0) + 1;
+      }
+    }
+    setCoMatrix(newMatrix);
+
+    // Deduct stock
+    setProducts(prev => prev.map(p => {
+      const cartItem = cart.find(c => c.id === p.id);
+      if (cartItem) return { ...p, stock: Math.max(0, p.stock - cartItem.quantity) };
+      return p;
+    }));
+
+    // Create order
+    const order = {
+      id: Date.now(),
+      items: [...cart],
+      subtotal: cartCalcs.subtotal,
+      tierDiscount: cartCalcs.tierDiscount,
+      tax: cartCalcs.tax,
+      total: cartCalcs.total,
+      paymentMethod: splitPayment ? `${splitAmounts.method1} + ${splitAmounts.method2}` : paymentMethod,
+      customerTier,
+      timestamp: new Date().toISOString(),
+      hour: new Date().getHours()
+    };
+
+    const receipt = { ...order };
+    setLastReceipt(receipt);
+    setOrders(prev => [order, ...prev].slice(0, 50));
+    setCart([]);
+    setSelectedCartItem(null);
+    setCashTendered("");
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  }, [cart, coMatrix, cartCalcs, paymentMethod, splitPayment, splitAmounts, customerTier]);
+
+  const refundOrder = useCallback((orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    // Restore stock
+    setProducts(prev => prev.map(p => {
+      const item = order.items.find(i => i.id === p.id);
+      if (item) return { ...p, stock: p.stock + item.quantity };
+      return p;
+    }));
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+  }, [orders]);
+
+  // Analytics data
+  const analyticsData = useMemo(() => {
+    const today = new Date().toDateString();
+    const todayOrders = orders.filter(o => new Date(o.timestamp).toDateString() === today);
+    const totalRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0);
+    const orderCount = todayOrders.length;
+    const avgOrder = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+    // Top sellers
+    const itemCounts = {};
+    todayOrders.forEach(o => {
+      o.items.forEach(item => {
+        itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+      });
+    });
+    const topSellers = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    // Hourly heatmap
+    const hourly = new Array(24).fill(0);
+    todayOrders.forEach(o => { hourly[o.hour] = (hourly[o.hour] || 0) + 1; });
+
+    return { totalRevenue, orderCount, avgOrder, topSellers, hourly };
+  }, [orders]);
+
+  const changeAmount = useMemo(() => {
+    const tendered = parseFloat(cashTendered) || 0;
+    return tendered - cartCalcs.total;
+  }, [cashTendered, cartCalcs.total]);
+
+  // ============ RENDER ============
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <header style={{
+        background: 'var(--surface)',
+        padding: '12px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid rgba(108,99,255,0.2)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px' }}>AI</div>
+          <h1 style={{ fontSize: '18px', fontWeight: 700 }}>POS-AI</h1>
+          <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Intelligent Point of Sale</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Shortcuts: / search | Esc clear | 1-9 qty | C clear cart</span>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {Object.keys(CUSTOMER_TIERS).map(tier => (
+              <button key={tier} onClick={() => setCustomerTier(tier)} style={{
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '11px',
+                fontWeight: 600,
+                background: customerTier === tier ? 'var(--accent)' : 'var(--card)',
+                color: 'var(--text-primary)'
+              }}>{tier}</button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Layout */}
+      <div className="main-layout" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* LEFT PANEL - Products */}
+        <div style={{ width: '35%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(108,99,255,0.1)', overflow: 'hidden' }}>
+          {/* Search */}
+          <div style={{ padding: '16px' }}>
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products... (press /)"
+              style={{ width: '100%', padding: '10px 16px', borderRadius: '12px', fontSize: '14px' }}
+            />
+          </div>
+
+          {/* Category Tabs */}
+          <div style={{ padding: '0 16px 12px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => setCategory(cat)} style={{
+                padding: '6px 14px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 500,
+                background: category === cat ? 'var(--accent)' : 'var(--card)',
+                color: category === cat ? '#fff' : 'var(--text-muted)',
+                position: 'relative'
+              }}>
+                {cat}
+                {category === cat && <div style={{ position: 'absolute', bottom: '-2px', left: '50%', transform: 'translateX(-50%)', width: '20px', height: '2px', background: '#fff', borderRadius: '1px' }} />}
+              </button>
+            ))}
+          </div>
+
+          {/* Product Grid */}
+          <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', alignContent: 'start' }}>
+            {loading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="skeleton" style={{ height: '120px' }} />
+              ))
+            ) : (
+              filteredProducts.map(product => (
+                <button
+                  key={product.id}
+                  onClick={() => addToCart(product)}
+                  disabled={product.stock <= 0}
+                  style={{
+                    background: 'var(--card)',
+                    borderRadius: '12px',
+                    padding: '14px 10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    position: 'relative',
+                    border: '1px solid rgba(108,99,255,0.1)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {product.stock > 0 && product.stock < 5 && (
+                    <span style={{ position: 'absolute', top: '6px', right: '6px', background: 'var(--warning)', color: '#000', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>Low</span>
+                  )}
+                  {product.stock <= 0 && (
+                    <span style={{ position: 'absolute', top: '6px', right: '6px', background: 'var(--danger)', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>Out</span>
+                  )}
+                  <span style={{ fontSize: '28px' }}>{product.emoji}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 500, textAlign: 'center', color: 'var(--text-primary)' }}>{product.name}</span>
+                  <span className="mono" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>${product.price.toFixed(2)}</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Stock: {product.stock}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* CENTER PANEL - Cart */}
+        <div style={{ width: '35%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(108,99,255,0.1)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid rgba(108,99,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 600 }}>Cart ({cart.length})</h2>
+            {cart.length > 0 && (
+              <button onClick={() => setShowClearConfirm(true)} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px', background: 'var(--danger)', color: '#fff', fontWeight: 500 }}>
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Clear Confirmation */}
+          {showClearConfirm && (
+            <div style={{ padding: '12px 16px', background: 'rgba(255,77,109,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '12px', color: 'var(--danger)' }}>Clear all items?</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={clearCart} style={{ padding: '4px 12px', borderRadius: '6px', background: 'var(--danger)', color: '#fff', fontSize: '11px' }}>Yes</button>
+                <button onClick={() => setShowClearConfirm(false)} style={{ padding: '4px 12px', borderRadius: '6px', background: 'var(--card)', color: 'var(--text-primary)', fontSize: '11px' }}>No</button>
+              </div>
+            </div>
+          )}
+
+          {/* Cart Items */}
+          <div style={{ flex: 1, overflow: 'auto', padding: '8px 16px' }}>
+            {cart.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
+                <span style={{ fontSize: '48px', opacity: 0.3 }}>🛒</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Start adding items</span>
+              </div>
+            ) : (
+              cart.map((item, idx) => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedCartItem(item.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px',
+                    marginBottom: '6px',
+                    borderRadius: '10px',
+                    background: selectedCartItem === item.id ? 'rgba(108,99,255,0.15)' : 'var(--card)',
+                    border: selectedCartItem === item.id ? '1px solid var(--accent)' : '1px solid transparent',
+                    animation: 'slideInRight 0.3s ease',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {selectedCartItem === item.id && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: '-3px',
+                      borderRadius: '12px',
+                      border: '2px solid var(--accent)',
+                      animation: 'pulseRing 2s infinite',
+                      pointerEvents: 'none'
+                    }} />
+                  )}
+                  <span style={{ fontSize: '22px' }}>{item.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                    <div className="mono" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      ${item.price.toFixed(2)} x {item.quantity}
+                      {item.discount > 0 && <span style={{ color: 'var(--success)', marginLeft: '6px' }}>-{item.discount}%</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={item.discount || ""}
+                      onChange={(e) => updateDiscount(item.id, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      placeholder="%"
+                      style={{ width: '36px', padding: '3px 4px', fontSize: '10px', borderRadius: '4px', textAlign: 'center' }}
+                    />
+                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, -1); }} style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</button>
+                    <span className="mono" style={{ fontSize: '12px', width: '20px', textAlign: 'center' }}>{item.quantity}</span>
+                    <button onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1); }} style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }} style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(255,77,109,0.2)', color: 'var(--danger)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* AI Recommendations Strip */}
+          {cart.length > 0 && recommendations.length > 0 && (
+            <div style={{
+              padding: '10px 16px',
+              borderTop: '1px solid rgba(108,99,255,0.1)',
+              animation: 'glowPulse 5s infinite'
+            }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                🤖 Customers also add:
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {recommendations.map(rec => (
+                  <button
+                    key={rec.id}
+                    onClick={() => addToCart(rec)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      background: 'rgba(108,99,255,0.15)',
+                      border: '1px solid rgba(108,99,255,0.3)',
+                      color: 'var(--text-primary)',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>{rec.emoji}</span>
+                    <span>{rec.name}</span>
+                    <span className="mono" style={{ color: 'var(--accent)', fontSize: '10px' }}>${rec.price.toFixed(2)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cart Summary */}
+          {cart.length > 0 && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(108,99,255,0.1)', background: 'var(--surface)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Subtotal</span>
+                <span className="mono">${cartCalcs.subtotal.toFixed(2)}</span>
+              </div>
+              {cartCalcs.tierDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px', color: 'var(--success)' }}>
+                  <span>{customerTier} Discount ({(CUSTOMER_TIERS[customerTier] * 100).toFixed(0)}%)</span>
+                  <span className="mono">-${cartCalcs.tierDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Tax (14%)</span>
+                <span className="mono">${cartCalcs.tax.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 700, paddingTop: '6px', borderTop: '1px solid rgba(108,99,255,0.2)' }}>
+                <span>Total</span>
+                <span className="mono" style={{ color: 'var(--accent)' }}>${cartCalcs.total.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT PANEL - Payment/Orders/Analytics */}
+        <div style={{ width: '30%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(108,99,255,0.1)' }}>
+            {[{id:'payment', label:'Payment'}, {id:'orders', label:'Orders'}, {id:'analytics', label:'Analytics'}].map(tab => (
+              <button key={tab.id} onClick={() => setRightTab(tab.id)} style={{
+                flex: 1,
+                padding: '12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                background: rightTab === tab.id ? 'var(--surface)' : 'transparent',
+                color: rightTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
+                borderBottom: rightTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
+                transition: 'all 0.2s'
+              }}>{tab.label}</button>
+            ))}
+          </div>
+
+          <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+            {/* PAYMENT TAB */}
+            {rightTab === 'payment' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Customer Tier */}
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Customer Tier</label>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    {Object.keys(CUSTOMER_TIERS).map(tier => (
+                      <button key={tier} onClick={() => setCustomerTier(tier)} style={{
+                        flex: 1,
+                        padding: '8px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: customerTier === tier ? (tier === 'VIP' ? 'linear-gradient(135deg, #6C63FF, #9b59b6)' : tier === 'Regular' ? 'var(--success)' : 'var(--card)') : 'var(--card)',
+                        color: customerTier === tier ? '#fff' : 'var(--text-muted)'
+                      }}>{tier} {tier !== 'New' && `(${CUSTOMER_TIERS[tier]*100}%)`}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Method</label>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    {[{m:'Cash', e:'💵'}, {m:'Card', e:'💳'}, {m:'Wallet', e:'📱'}].map(({m, e}) => (
+                      <button key={m} onClick={() => setPaymentMethod(m)} style={{
+                        flex: 1,
+                        padding: '10px 8px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        background: paymentMethod === m && !splitPayment ? 'var(--accent)' : 'var(--card)',
+                        color: paymentMethod === m && !splitPayment ? '#fff' : 'var(--text-muted)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <span style={{ fontSize: '18px' }}>{e}</span>
+                        <span>{m}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Split Payment Toggle */}
+                <div>
+                  <button onClick={() => setSplitPayment(!splitPayment)} style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    background: splitPayment ? 'rgba(108,99,255,0.2)' : 'var(--card)',
+                    color: splitPayment ? 'var(--accent)' : 'var(--text-muted)',
+                    border: splitPayment ? '1px solid var(--accent)' : '1px solid transparent'
+                  }}>
+                    {splitPayment ? '✓ Split Payment Active' : 'Enable Split Payment'}
+                  </button>
+                </div>
+
+                {/* Split Payment Inputs */}
+                {splitPayment && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'var(--card)', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <select value={splitAmounts.method1} onChange={(e) => setSplitAmounts(p => ({...p, method1: e.target.value}))} style={{ flex: 1, padding: '6px', borderRadius: '6px', background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid rgba(108,99,255,0.3)', fontSize: '11px' }}>
+                        <option>Cash</option><option>Card</option><option>Wallet</option>
+                      </select>
+                      <input type="number" placeholder="Amount" value={splitAmounts.amount1} onChange={(e) => setSplitAmounts(p => ({...p, amount1: e.target.value}))} style={{ width: '80px', padding: '6px', fontSize: '12px', borderRadius: '6px' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <select value={splitAmounts.method2} onChange={(e) => setSplitAmounts(p => ({...p, method2: e.target.value}))} style={{ flex: 1, padding: '6px', borderRadius: '6px', background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid rgba(108,99,255,0.3)', fontSize: '11px' }}>
+                        <option>Cash</option><option>Card</option><option>Wallet</option>
+                      </select>
+                      <input type="number" placeholder="Amount" value={splitAmounts.amount2} onChange={(e) => setSplitAmounts(p => ({...p, amount2: e.target.value}))} style={{ width: '80px', padding: '6px', fontSize: '12px', borderRadius: '6px' }} />
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                      Total: ${cartCalcs.total.toFixed(2)} | Split: ${(parseFloat(splitAmounts.amount1)||0).toFixed(2)} + ${(parseFloat(splitAmounts.amount2)||0).toFixed(2)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cash Tendered */}
+                {paymentMethod === 'Cash' && !splitPayment && (
+                  <div>
+                    <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cash Tendered</label>
+                    <input
+                      type="number"
+                      value={cashTendered}
+                      onChange={(e) => setCashTendered(e.target.value)}
+                      placeholder="0.00"
+                      style={{ width: '100%', marginTop: '6px', padding: '10px', fontSize: '16px', borderRadius: '8px', fontFamily: 'JetBrains Mono' }}
+                    />
+                    {cashTendered && (
+                      <div className="mono" style={{ marginTop: '6px', fontSize: '14px', color: changeAmount >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
+                        Change: ${changeAmount.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Order Summary */}
+                {cart.length > 0 && (
+                  <div style={{ padding: '12px', background: 'var(--card)', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase' }}>Order Summary</div>
+                    {cart.map(item => (
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                        <span>{item.emoji} {item.name} x{item.quantity}</span>
+                        <span className="mono">${(item.price * item.quantity * (1 - (item.discount||0)/100)).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div style={{ borderTop: '1px solid rgba(108,99,255,0.2)', marginTop: '8px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '13px' }}>
+                      <span>Total</span>
+                      <span className="mono" style={{ color: 'var(--accent)' }}>${cartCalcs.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Process Button */}
+                <button
+                  onClick={processPayment}
+                  disabled={cart.length === 0}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    background: cart.length > 0 ? 'linear-gradient(135deg, var(--accent), #8b7dff)' : 'var(--card)',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  Process Payment (Enter)
+                </button>
+              </div>
+            )}
+
+            {/* ORDERS TAB */}
+            {rightTab === 'orders' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>Recent Orders</h3>
+                {orders.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0', fontSize: '13px' }}>
+                    No orders yet
+                  </div>
+                ) : (
+                  orders.slice(0, 5).map(order => (
+                    <div key={order.id} style={{ background: 'var(--card)', borderRadius: '10px', padding: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {new Date(order.timestamp).toLocaleTimeString()}
+                        </span>
+                        <span className="mono" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>
+                          ${order.total.toFixed(2)}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '11px', marginBottom: '6px' }}>
+                        {order.items.map(i => `${i.emoji} ${i.name} x${i.quantity}`).join(', ')}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                          {order.paymentMethod} | {order.customerTier}
+                        </span>
+                        <button onClick={() => refundOrder(order.id)} style={{
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          background: 'rgba(255,77,109,0.15)',
+                          color: 'var(--danger)',
+                          fontSize: '10px',
+                          fontWeight: 600
+                        }}>Refund</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* ANALYTICS TAB */}
+            {rightTab === 'analytics' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Stat Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <div style={{ background: 'var(--card)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>Revenue</div>
+                    <div className="mono" style={{ fontSize: '14px', fontWeight: 700, color: 'var(--success)' }}>${analyticsData.totalRevenue.toFixed(2)}</div>
+                  </div>
+                  <div style={{ background: 'var(--card)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>Orders</div>
+                    <div className="mono" style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>{analyticsData.orderCount}</div>
+                  </div>
+                  <div style={{ background: 'var(--card)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>Avg Order</div>
+                    <div className="mono" style={{ fontSize: '14px', fontWeight: 700, color: 'var(--warning)' }}>${analyticsData.avgOrder.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                {/* Top Sellers SVG Bar Chart */}
+                <div>
+                  <h4 style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>Top 5 Sellers</h4>
+                  {analyticsData.topSellers.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '11px', padding: '20px 0' }}>No sales data yet</div>
+                  ) : (
+                    <svg width="100%" height={analyticsData.topSellers.length * 32 + 10} style={{ overflow: 'visible' }}>
+                      {analyticsData.topSellers.map(([name, count], i) => {
+                        const maxCount = analyticsData.topSellers[0][1];
+                        const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                        return (
+                          <g key={name} transform={`translate(0, ${i * 32})`}>
+                            <rect x="0" y="4" width={`${barWidth}%`} height="18" rx="4" fill="var(--accent)" opacity="0.7" />
+                            <text x="6" y="17" fontSize="10" fill="var(--text-primary)" fontFamily="Inter">{name}</text>
+                            <text x="95%" y="17" fontSize="10" fill="var(--text-muted)" fontFamily="JetBrains Mono" textAnchor="end">{count}</text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+                </div>
+
+                {/* Hourly Heatmap */}
+                <div>
+                  <h4 style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>Hourly Sales Heatmap</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '3px' }}>
+                    {analyticsData.hourly.map((count, hour) => {
+                      const maxHourly = Math.max(...analyticsData.hourly, 1);
+                      const intensity = count / maxHourly;
+                      return (
+                        <div key={hour} title={`${hour}:00 - ${count} orders`} style={{
+                          aspectRatio: '1',
+                          borderRadius: '4px',
+                          background: count === 0 ? 'var(--card)' : `rgba(108, 99, 255, ${0.2 + intensity * 0.8})`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '8px',
+                          color: 'var(--text-muted)'
+                        }}>
+                          {hour}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Success Overlay */}
+      {showSuccess && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(11, 15, 26, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <svg width="80" height="80" viewBox="0 0 50 50">
+            <circle cx="25" cy="25" r="23" fill="none" stroke="var(--success)" strokeWidth="2" opacity="0.3" />
+            <path
+              d="M14 26 L22 34 L36 18"
+              fill="none"
+              stroke="var(--success)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="50"
+              style={{ animation: 'checkmark 0.6s ease forwards' }}
+            />
+          </svg>
+          <h2 style={{ marginTop: '20px', fontSize: '20px', color: 'var(--success)' }}>Payment Successful!</h2>
+          {lastReceipt && (
+            <div style={{ marginTop: '16px', padding: '16px', background: 'var(--card)', borderRadius: '12px', width: '280px', maxHeight: '300px', overflow: 'auto' }}>
+              <div style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase' }}>Receipt</div>
+              {lastReceipt.items.map(item => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                  <span>{item.emoji} {item.name} x{item.quantity}</span>
+                  <span className="mono">${(item.price * item.quantity * (1 - (item.discount||0)/100)).toFixed(2)}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: '1px dashed var(--text-muted)', margin: '8px 0', opacity: 0.3 }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '2px' }}>
+                <span>Subtotal</span><span className="mono">${lastReceipt.subtotal.toFixed(2)}</span>
+              </div>
+              {lastReceipt.tierDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '2px', color: 'var(--success)' }}>
+                  <span>Tier Discount</span><span className="mono">-${lastReceipt.tierDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '2px' }}>
+                <span>Tax (14%)</span><span className="mono">${lastReceipt.tax.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, marginTop: '6px' }}>
+                <span>Total</span><span className="mono" style={{ color: 'var(--accent)' }}>${lastReceipt.total.toFixed(2)}</span>
+              </div>
+              <div style={{ borderTop: '1px dashed var(--text-muted)', margin: '8px 0', opacity: 0.3 }} />
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                <div>{lastReceipt.paymentMethod} | {lastReceipt.customerTier}</div>
+                <div>{new Date(lastReceipt.timestamp).toLocaleString()}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
