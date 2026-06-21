@@ -1,12 +1,13 @@
 import Stripe from 'stripe';
+import { getApiKey } from './security';
 
 const STRIPE_TIMEOUT = 10000; // 10 seconds
 const MAX_RETRIES = 3;
 
 function getStripeClient(): Stripe {
-  const apiKey = process.env.STRIPE_SECRET_KEY || '';
+  const apiKey = getApiKey('stripe_secret_key') || process.env.STRIPE_SECRET_KEY || '';
   if (!apiKey) {
-    throw new Error('Stripe API key not configured. Set STRIPE_SECRET_KEY in environment.');
+    throw new Error('Stripe API key not configured. Set it in Settings or STRIPE_SECRET_KEY environment variable.');
   }
   return new Stripe(apiKey, {
     apiVersion: '2024-04-10' as Stripe.LatestApiVersion,
@@ -115,5 +116,5 @@ export async function cancelPayment(paymentIntentId: string): Promise<{ id: stri
 }
 
 export function isStripeConfigured(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY;
+  return !!(getApiKey('stripe_secret_key') || process.env.STRIPE_SECRET_KEY);
 }
