@@ -1,0 +1,34 @@
+{
+  "id": "FEAT-005",
+  "type": "chore",
+  "description": "Final integration pass: fix all TypeScript errors, ensure all imports resolve correctly, verify the build succeeds end-to-end, and ensure the project is ready for electron-builder packaging.",
+  "status": "pending",
+  "steps": [
+    "Run npx tsc --noEmit and fix ALL TypeScript errors across the entire project",
+    "Ensure all import paths are correct and all modules resolve (check relative paths, aliases)",
+    "Verify all React components export correctly and are imported in their parent pages",
+    "Ensure package.json has correct 'main' entry pointing to the Electron main process output",
+    "Verify electron-builder.yml has correct file patterns to include all built assets",
+    "Ensure vite.config.ts output is configured correctly for Electron renderer loading",
+    "Run npm run build and fix any Vite build errors",
+    "Verify prisma/schema.prisma is valid with npx prisma validate",
+    "Ensure all route files are imported and registered in src/main/server.ts",
+    "Verify the Tailwind config includes all content paths for purging",
+    "Check that all Framer Motion animations have proper variants defined",
+    "Ensure the app renders without runtime errors by checking component structure"
+  ],
+  "acceptance_criteria": [
+    "npx tsc --noEmit exits with code 0 (zero TypeScript errors)",
+    "npm run build exits with code 0 (Vite builds successfully)",
+    "npx prisma validate exits with code 0",
+    "All files have proper TypeScript types (no 'any' abuse, proper interfaces used)",
+    "Package.json scripts are complete: dev, build, start, prisma:generate, prisma:migrate, seed"
+  ],
+  "verification": [
+    "Run: cd /projects/sandbox/POS-AI && npx tsc --noEmit",
+    "Run: cd /projects/sandbox/POS-AI && npm run build",
+    "Run: cd /projects/sandbox/POS-AI && npx prisma validate"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

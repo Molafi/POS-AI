@@ -1,0 +1,49 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Implement receipt PDF generation, Stripe payment integration, Socket.io real-time sync, auto-updater config, offline resilience, error handling, and seed data. Complete all remaining backend services and integration points.",
+  "status": "pending",
+  "steps": [
+    "Create src/main/services/receipt.ts - PDF generation with pdfkit: business logo, name, address, order number, date/time, itemized list, discounts, tax breakdown, total, payment method, change due, cashier name, thank-you message. Support 80mm thermal receipt format",
+    "Create src/main/services/stripe.ts - Stripe payment processing: create payment intent, confirm payment, handle errors with retry (3x with exponential backoff), timeout (10s)",
+    "Create src/main/services/scheduler.ts - node-cron scheduled tasks: daily profit summary calculation at midnight, writes to daily_summary table",
+    "Create src/main/services/socket.ts - Socket.io server setup for real-time sync between terminals: broadcast order events, stock updates, product changes",
+    "Create src/main/services/backup.ts - auto-backup service: copy SQLite database file to configured backup folder on schedule",
+    "Create src/main/services/updater.ts - electron-updater configuration pointing to GitHub Releases, check for updates on app start, notify user of available updates",
+    "Create src/main/routes/payments.ts - POST /api/payments/process (Stripe card payment), POST /api/payments/cash (record cash payment), handle split payments",
+    "Create src/main/routes/receipts.ts - POST /api/receipts/generate (create PDF, return file path or base64)",
+    "Create src/renderer/hooks/useSocket.ts - Socket.io client hook for receiving real-time updates",
+    "Create src/renderer/hooks/useOffline.ts - detect online/offline status, show 'AI unavailable' banner when offline, fall back to cash-only mode if Stripe unreachable",
+    "Create src/renderer/components/shared/OfflineBanner.tsx - styled banner showing offline status and degraded features",
+    "Create src/renderer/components/shared/ErrorBoundary.tsx - React error boundary with user-friendly error display",
+    "Create src/main/middleware/errorHandler.ts - Express error handling middleware with user-friendly messages and error logging",
+    "Create src/main/middleware/validation.ts - Zod schema validation for all IPC channels and API requests",
+    "Update src/main/main.ts - add auto-save cart timer (every 30s), register all IPC handlers with Zod validation, configure nodeIntegration:false and contextIsolation:true",
+    "Create prisma/seed.ts - seed script with 20 sample products (matching categories: Food, Drink, Dessert, Retail, Combo, Electronics, Clothing), a default manager user (PIN: 1234), and default settings (tax rate 16%, business name)",
+    "Add seed script to package.json prisma configuration",
+    "Create src/main/services/security.ts - encrypted storage for API keys using electron-store with encryption, bcrypt for PIN hashing",
+    "Ensure all API calls have timeout (10s) + retry (3x with exponential backoff) pattern",
+    "Ensure AI JSON parsing is wrapped in try/catch with fallback to manual entry mode",
+    "Ensure database errors show user-friendly messages and write to an error log file"
+  ],
+  "acceptance_criteria": [
+    "Receipt PDF generation creates a properly formatted PDF with all required fields",
+    "Stripe integration processes payments and handles errors gracefully with retry logic",
+    "Socket.io broadcasts order and stock update events",
+    "node-cron daily summary job is configured correctly",
+    "Offline detection works and UI degrades gracefully (AI unavailable banner, cash-only mode)",
+    "All API endpoints validate input with Zod schemas",
+    "Seed script creates 20 products and default manager user",
+    "Auto-updater is configured to check GitHub Releases",
+    "Error handling covers all API calls, AI parsing, and database operations",
+    "npx tsc --noEmit passes for all new files",
+    "npm run build succeeds"
+  ],
+  "verification": [
+    "Run: cd /projects/sandbox/POS-AI && npx tsc --noEmit 2>&1 | tail -30",
+    "Run: cd /projects/sandbox/POS-AI && npm run build 2>&1 | tail -20",
+    "Run: cd /projects/sandbox/POS-AI && npx prisma generate && node -e \"require('./prisma/seed.ts')\" 2>&1 | head -20"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

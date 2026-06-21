@@ -1,0 +1,45 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Build the complete Cashier View - the main selling interface with three-panel layout: product grid with fuzzy search, live cart with AI recommendations, and payment processing panel.",
+  "status": "pending",
+  "steps": [
+    "Create src/renderer/pages/CashierView.tsx - three-panel layout (35% product grid | 35% live cart | 30% payment) using Tailwind flex/grid",
+    "Create src/renderer/components/cashier/ProductGrid.tsx - virtualized grid using react-window with product cards showing image/emoji, name, price, stock badge (LOW amber <5, OUT red =0), scan-line hover animation, disabled state for out-of-stock",
+    "Create src/renderer/components/cashier/SearchBar.tsx - fuzzy search input with Levenshtein scoring from utils/algorithms.ts, debounced 150ms, shows match score ranking, highlights matched characters with <mark> tags",
+    "Create src/renderer/components/cashier/CategoryTabs.tsx - horizontal pill tabs with animated active indicator (Framer Motion), categories: All/Food/Drink/Dessert/Retail/Combo, F1-F8 keyboard shortcut support",
+    "Create src/renderer/components/cashier/CartPanel.tsx - line items with product thumbnail, name, qty +/- controls, per-item discount % input, line total. Framer Motion slide-in animation on add (from right, scale 0.8->1, 150ms spring)",
+    "Create src/renderer/components/cashier/CustomerTierSelector.tsx - three pill buttons (New/Regular 5%/VIP 10%) with tier icons",
+    "Create src/renderer/components/cashier/AIRecommendations.tsx - 'Customers also add' strip at bottom of cart with 2-3 pill suggestions from co-occurrence matrix, click to add, pulsing blue glow border every 8s",
+    "Create src/renderer/components/cashier/CartTotals.tsx - subtotal, discount amount (red), tax (configurable default 16%), NET TOTAL in JetBrains Mono accent color, react-countup for animated number changes",
+    "Create src/renderer/components/cashier/PaymentPanel.tsx - customer name field, payment method selector (Cash/Card/Wallet with emoji icons), split payment toggle with two method pickers + amount inputs that validate sum equals total, cash tendered input with real-time change calculation",
+    "Create src/renderer/components/cashier/ProcessPaymentButton.tsx - large full-width accent button, disabled until valid, loading spinner during processing",
+    "Create src/renderer/components/cashier/SuccessOverlay.tsx - animated SVG checkmark stroke (600ms), order number, total, change due, Print Receipt button, New Sale button. Framer Motion opacity + scale animation",
+    "Create src/renderer/components/shared/ScanLineCard.tsx - reusable card component with CSS @keyframes scan-line effect on hover (thin horizontal gradient sweeps top-to-bottom over 0.6s)",
+    "Create src/main/routes/products.ts - Express GET /api/products (with category filter, search), GET /api/products/:id",
+    "Create src/main/routes/orders.ts - Express POST /api/orders (create order, deduct stock, update co-occurrence matrix), GET /api/orders",
+    "Create src/main/routes/cart.ts - Express POST /api/cart/save-draft, GET /api/cart/draft (auto-save every 30s)",
+    "Create src/renderer/hooks/useCart.ts - cart state management hook with add, remove, updateQty, updateDiscount, clear, saveDraft, loadDraft",
+    "Create src/renderer/hooks/useProducts.ts - products fetching hook with category filter and fuzzy search",
+    "Create src/renderer/hooks/useKeyboardShortcuts.ts - implement all shortcuts: / focus search, Escape close modal, Enter confirm payment, F1-F8 categories, 1-9 quantity, Ctrl+N new sale, Ctrl+P print receipt",
+    "Wire up Save as Draft button (persists cart to SQLite) and Clear Cart button (with confirmation modal)"
+  ],
+  "acceptance_criteria": [
+    "CashierView renders three panels with correct proportions",
+    "Product grid displays cards with scan-line hover effect and stock badges",
+    "Fuzzy search returns ranked results with character highlighting",
+    "Cart items animate in with Framer Motion spring animation",
+    "Payment panel calculates change due in real-time for cash payments",
+    "Split payment validates that amounts sum to total",
+    "Success overlay shows with SVG checkmark animation",
+    "AI recommendations strip shows co-occurrence based suggestions",
+    "All keyboard shortcuts are registered and functional",
+    "npx tsc --noEmit passes for all new files"
+  ],
+  "verification": [
+    "Run: cd /projects/sandbox/POS-AI && npx tsc --noEmit 2>&1 | tail -20",
+    "Run: cd /projects/sandbox/POS-AI && npm run build 2>&1 | tail -20"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  sku         String      @unique
+  barcode     String?
+  category    String
+  price       Float
+  cost        Float       @default(0)
+  stock       Int         @default(0)
+  minStock    Int         @default(5)
+  imageUrl    String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  orderItems  OrderItem[]
+  coOccurrenceA CoOccurrence[] @relation("ProductA")
+  coOccurrenceB CoOccurrence[] @relation("ProductB")
+
+  @@index([category])
+  @@index([createdAt])
+  @@index([barcode])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  status        String      @default("completed")
+  subtotal      Float
+  tax           Float
+  discount      Float       @default(0)
+  total         Float
+  paymentMethod String
+  customerId    String?
+  cashierId     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  items         OrderItem[]
+  refunds       Refund[]
+  cashier       User        @relation(fields: [cashierId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([cashierId])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  discount    Float    @default(0)
+  total       Float
+  createdAt   DateTime @default(now())
+
+  order       Order    @relation(fields: [orderId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  orderId     String
+  amount      Float
+  reason      String
+  status      String   @default("pending")
+  processedBy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  order       Order    @relation(fields: [orderId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  password    String
+  name        String
+  role        String   @default("cashier")
+  pin         String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders      Order[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model CoOccurrence {
+  id          String   @id @default(cuid())
+  productAId  String
+  productBId  String
+  count       Int      @default(1)
+  updatedAt   DateTime @updatedAt
+
+  productA    Product  @relation("ProductA", fields: [productAId], references: [id])
+  productB    Product  @relation("ProductB", fields: [productBId], references: [id])
+
+  @@unique([productAId, productBId])
+  @@index([productAId])
+  @@index([productBId])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  category  String   @default("general")
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+model DailySummary {
+  id              String   @id @default(cuid())
+  date            String   @unique
+  totalRevenue    Float    @default(0)
+  totalOrders     Int      @default(0)
+  totalItems      Int      @default(0)
+  avgOrderValue   Float    @default(0)
+  topCategory     String?
+  totalRefunds    Float    @default(0)
+  refundCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([date])
+  @@index([createdAt])
+}

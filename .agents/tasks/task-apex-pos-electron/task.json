@@ -1,0 +1,7 @@
+{
+  "task_id": "task-apex-pos-electron",
+  "task_description": "Build APEX POS - a professional Electron desktop POS application with React/TypeScript frontend, Express/SQLite backend, AI-powered product management (Claude Vision), and complete business management dashboard. Targets Windows .exe packaging via electron-builder.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}
