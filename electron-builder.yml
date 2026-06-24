@@ -1,0 +1,28 @@
+appId: com.apex.pos
+productName: APEX POS
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: APEX POS
+publish:
+  provider: github
+  owner: apex-pos
+  repo: apex-pos
+  releaseType: release

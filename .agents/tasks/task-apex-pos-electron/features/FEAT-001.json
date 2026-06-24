@@ -1,0 +1,51 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Scaffold the complete Electron + React + TypeScript project structure with all dependencies, configs, Prisma schema, and basic app shell. Remove old index.html.",
+  "status": "completed",
+  "steps": [
+    "Remove the existing /projects/sandbox/POS-AI/index.html file",
+    "Create package.json with all required dependencies: electron, electron-builder, electron-store, electron-updater, react, react-dom, react-router-dom, typescript, tailwindcss, postcss, autoprefixer, framer-motion, recharts, react-dropzone, react-hot-toast, react-countup, react-window, express, socket.io, better-sqlite3, prisma, @prisma/client, node-cron, pdfkit, stripe, @anthropic-ai/sdk, bcryptjs, zod, vite, @vitejs/plugin-react, concurrently, and all @types packages",
+    "Create tsconfig.json (strict mode, paths for src/main, src/renderer, src/shared)",
+    "Create tsconfig.main.json for Electron main process (target: ES2022, module: commonjs)",
+    "Create tsconfig.renderer.json for React renderer (target: ES2022, module: ESNext, jsx: react-jsx)",
+    "Create vite.config.ts for renderer process bundling (React plugin, resolve aliases)",
+    "Create tailwind.config.ts with the APEX DARK design system colors as CSS variables and Plus Jakarta Sans / Inter / JetBrains Mono fonts",
+    "Create postcss.config.js with tailwind and autoprefixer",
+    "Create electron-builder.yml targeting Windows NSIS installer with auto-updater config pointing to GitHub Releases",
+    "Create prisma/schema.prisma with SQLite provider and all tables: products, orders, order_items, refunds, users, co_occurrence, settings, daily_summary - with proper relations and indexes",
+    "Create src/shared/types.ts with all TypeScript interfaces matching the Prisma schema plus UI types (CartItem, PaymentMethod, CustomerTier, etc.)",
+    "Create src/main/main.ts - Electron app entry: create BrowserWindow with nodeIntegration:false, contextIsolation:true, load renderer, register IPC handlers",
+    "Create src/main/preload.ts - expose safe IPC bridge via contextBridge",
+    "Create src/main/server.ts - Express server setup with Socket.io, serves on localhost port for the renderer",
+    "Create src/main/database.ts - Prisma client initialization and helper functions",
+    "Create src/renderer/index.html - HTML entry point for Vite with font links (Plus Jakarta Sans, Inter, JetBrains Mono)",
+    "Create src/renderer/index.tsx - React 18 createRoot entry point",
+    "Create src/renderer/App.tsx - React Router v6 setup with routes for Cashier, Dashboard, Settings",
+    "Create src/renderer/index.css - Tailwind directives (@tailwind base/components/utilities) plus APEX DARK CSS variables plus scan-line keyframes and orbit animation",
+    "Create src/renderer/pages/ directory with placeholder page components for CashierView, ManagerDashboard, Settings",
+    "Create src/renderer/components/ directory structure: layout/, cashier/, dashboard/, settings/, shared/",
+    "Create src/renderer/hooks/ directory with useSocket.ts placeholder",
+    "Create src/renderer/utils/ directory with algorithms.ts (Levenshtein, co-occurrence, EMA, ABC analysis implementations)",
+    "Create src/renderer/lib/api.ts - API client for communicating with Express backend",
+    "Create .gitignore for node_modules, dist, .prisma, *.db",
+    "Run npm install to verify all dependencies resolve",
+    "Run npx prisma generate to verify schema is valid"
+  ],
+  "acceptance_criteria": [
+    "npm install completes without errors",
+    "npx prisma generate succeeds and creates the Prisma client",
+    "npx tsc --noEmit (with appropriate tsconfig) shows no critical errors in the scaffold files",
+    "electron-builder.yml is valid YAML targeting win/nsis",
+    "All APEX DARK design system colors are defined in tailwind.config.ts and src/renderer/index.css",
+    "The Prisma schema has all 8 tables with proper relations and indexes on category, status, created_at",
+    "src/renderer/utils/algorithms.ts contains complete implementations of Levenshtein distance, co-occurrence matrix recommendations, exponential moving average, and ABC analysis"
+  ],
+  "verification": [
+    "Run: cd /projects/sandbox/POS-AI && npm install",
+    "Run: cd /projects/sandbox/POS-AI && npx prisma generate",
+    "Run: cd /projects/sandbox/POS-AI && npx tsc --noEmit --project tsconfig.json 2>&1 | head -50"
+  ],
+  "blocked_reason": null,
+  "findings": "npm install completed with deprecation warnings but no errors. prisma generate succeeded. All 3 tsconfig variants (root, main, renderer) pass tsc --noEmit with zero errors. The rootDir for tsconfig.main.json and tsconfig.renderer.json was set to 'src' (not their individual subdirs) to accommodate the shared types import from src/shared/."
+}
